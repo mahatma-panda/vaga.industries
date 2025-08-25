@@ -1,41 +1,219 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Welcome to Vaga.Industries</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hello World — Particle Background</title>
   <style>
+    :root {
+      /* Tweak the gradient or particle density as you like */
+      --bg1: #1e88e5; /* blue */
+      --bg2: #00acc1; /* teal */
+      --dot-alpha: 0.85;
+      --line-alpha-max: 0.18;  /* max line opacity when particles are very close */
+      --line-distance: 120px;  /* distance at which we stop drawing a line */
+      --min-particles: 50;
+      --max-particles: 140;
+      --density-divisor: 12000; /* higher = fewer particles per area */
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
     body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      /* Background gradient similar to HA login feel */
+      background:
+        radial-gradient(1200px 800px at 80% 20%, rgba(255,255,255,0.06), transparent 60%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
       color: #fff;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      overflow: hidden;
+
+      /* Center the content */
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* Fullscreen canvas behind the content */
+    #particles {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none; /* let clicks go through to content */
+    }
+
+    /* Foreground content */
+    .main {
+      position: relative;
+      z-index: 1;
       text-align: center;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      font-size: clamp(28px, 8vw, 80px);
+      text-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.18),
+        0 6px 30px rgba(0, 0, 0, 0.12);
+      user-select: text;
     }
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-    }
-    p {
-      font-size: 1.2rem;
-      opacity: 0.8;
-    }
-    footer {
-      position: absolute;
-      bottom: 20px;
-      font-size: 0.9rem;
-      opacity: 0.6;
+
+    /* If the user prefers reduced motion, we’ll stop animating */
+    @media (prefers-reduced-motion: reduce) {
+      body { overflow: hidden; }
     }
   </style>
 </head>
 <body>
-  <h1>Hello, World 👋</h1>
-  <p>Welcome to <strong>Vaga.Industries</strong>. Something awesome is coming soon.</p>
-  <footer>&copy; 2025 Vaga.Industries</footer>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="main">Hello World</div>
+
+  <script>
+    // Particle background inspired by the Home Assistant login effect.
+    // No external libs, responsive, high-DPI aware, honors prefers-reduced-motion.
+
+    (() => {
+      const canvas = document.getElementById('particles');
+      const ctx = canvas.getContext('2d');
+
+      // DPR handling for crisp rendering
+      const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+
+      let width = 0, height = 0;
+      let particles = [];
+      let connectDist = parseFloat(getComputedStyle(document.documentElement)
+                        .getPropertyValue('--line-distance')) || 120;
+      let running = false;
+
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+      // Compute particle count based on screen area
+      function computeParticleCount() {
+        const styles = getComputedStyle(document.documentElement);
+        const densityDivisor = parseFloat(styles.getPropertyValue('--density-divisor')) || 12000;
+        const minP = parseInt(styles.getPropertyValue('--min-particles')) || 50;
+        const maxP = parseInt(styles.getPropertyValue('--max-particles')) || 140;
+        const est = Math.round((width * height) / densityDivisor);
+        return Math.max(minP, Math.min(maxP, est));
+      }
+
+      function resize() {
+        width = canvas.clientWidth = window.innerWidth;
+        height = canvas.clientHeight = window.innerHeight;
+
+        canvas.width = Math.floor(width * DPR);
+        canvas.height = Math.floor(height * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+        // Rebuild particles on resize to maintain even distribution and density
+        initParticles();
+        if (prefersReduced.matches) {
+          drawStatic();
+        }
+      }
+
+      function initParticles() {
+        const count = computeParticleCount();
+        particles = [];
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() * 0.6 - 0.3), // small drift in both axes
+            vy: (Math.random() * 0.6 - 0.3),
+            r: Math.random() * 1.6 + 0.6
+          });
+        }
+      }
+
+      function drawFrame(move = true) {
+        ctx.clearRect(0, 0, width, height);
+
+        const styles = getComputedStyle(document.documentElement);
+        const dotAlpha = parseFloat(styles.getPropertyValue('--dot-alpha')) || 0.85;
+        const lineAlphaMax = parseFloat(styles.getPropertyValue('--line-alpha-max')) || 0.18;
+
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+
+          if (move) {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // soft bounce off edges
+            if (p.x <= 0 || p.x >= width) p.vx *= -1;
+            if (p.y <= 0 || p.y >= height) p.vy *= -1;
+          }
+
+          // draw dot
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${dotAlpha})`;
+          ctx.fill();
+
+          // connect to nearby particles
+          for (let j = i + 1; j < particles.length; j++) {
+            const q = particles[j];
+            const dx = p.x - q.x;
+            const dy = p.y - q.y;
+            const d2 = dx * dx + dy * dy;
+            const cd = connectDist;
+            if (d2 < cd * cd) {
+              const dist = Math.sqrt(d2);
+              const alpha = (1 - dist / cd) * lineAlphaMax;
+              ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(q.x, q.y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function loop() {
+        if (!running) return;
+        drawFrame(true);
+        requestAnimationFrame(loop);
+      }
+
+      function start() {
+        if (running) return;
+        running = true;
+        requestAnimationFrame(loop);
+      }
+
+      function stop() {
+        running = false;
+      }
+
+      function drawStatic() {
+        // One non-animated draw for reduced motion
+        drawFrame(false);
+      }
+
+      // Initial setup
+      resize();
+      window.addEventListener('resize', resize);
+
+      // Respect prefers-reduced-motion
+      if (prefersReduced.matches) {
+        stop();
+        drawStatic();
+      } else {
+        start();
+      }
+
+      // React to changes in the user's motion preference
+      prefersReduced.addEventListener?.('change', (e) => {
+        if (e.matches) {
+          stop();
+          drawStatic();
+        } else {
+          start();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
