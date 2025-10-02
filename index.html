@@ -67,20 +67,19 @@
   <canvas id="particles" aria-hidden="true"></canvas>
   <div class="main">Hello World</div>
   
-  <button onclick="triggerWebhook()">Trigger Webhook</button>
+  <button onclick="triggerWebhook()">Trigger Webhook!</button>
   
     <script>
       function triggerWebhook() {
         fetch("https://hooks.nabu.casa/gAAAAABo3pywXXvChUrAJBYj9b18hKEFuJsCtV7dic3znSchebdwQkj1ZHj9ZmtSwHYG-XppYqXiG4lA-eZnR_lePrNnwT-FvO3u8arxWzElLy8xpiS72WM6Jg6lO0W6Iiq_SZAta6S-YHAtaMgeh-4eSMtPcp9TR9iYoyQ9iO-mhQnOiJ9G2aw=", {
           method: "POST"
-          mode: "no-cors" // This suppresses CORS-related errors
         })
         .then(() => {
               alert("Webhook triggered!");
         })
         .catch(error => {
-          console.warn("Fetch error (likely due to CORS):", error);
-          alert("Webhook triggered, but browser reported an error (likely CORS).");
+          console.error("Error triggering webhook:", error);
+          alert("There was a problem triggering the webhook.");
         });
       }
     </script>
