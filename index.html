@@ -66,6 +66,28 @@
 <body>
   <canvas id="particles" aria-hidden="true"></canvas>
   <div class="main">Hello World</div>
+  
+  <button onclick="triggerWebhook()">Trigger Webhook</button>
+  
+    <script>
+      function triggerWebhook() {
+        fetch("https://hooks.nabu.casa/gAAAAABo3pywXXvChUrAJBYj9b18hKEFuJsCtV7dic3znSchebdwQkj1ZHj9ZmtSwHYG-XppYqXiG4lA-eZnR_lePrNnwT-FvO3u8arxWzElLy8xpiS72WM6Jg6lO0W6Iiq_SZAta6S-YHAtaMgeh-4eSMtPcp9TR9iYoyQ9iO-mhQnOiJ9G2aw=", {
+          method: "POST"
+        })
+        .then(response => {
+          if (response.ok) {
+            alert("Webhook triggered successfully!");
+          } else {
+            alert("Failed to trigger webhook.");
+          }
+        })
+        .catch(error => {
+          console.error("Error triggering webhook:", error);
+          alert("Error triggering webhook.");
+        });
+      }
+    </script>
+
 
   <script>
     // Particle background inspired by the Home Assistant login effect.
